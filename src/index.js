@@ -1,11 +1,10 @@
 import 'dotenv/config';
-import express from 'express';
 import connectDB from './db/index.js';
+import { app } from './app.js';
 
-const app = express();
-
-app.listen(process.env.PORT, () => console.log(`app is listening at port ${process.env.PORT}`));
-connectDB();
+connectDB().then(() => {
+    app.listen(process.env.PORT || 8000, () => console.log(`app is listening at port ${process.env.PORT}`));
+}).catch(err => console.log('failed to start server:: ', err));
 
 app.get('/', (req, res) => {
     res.send('hello world new');
