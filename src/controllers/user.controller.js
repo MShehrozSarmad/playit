@@ -139,7 +139,7 @@ const refreshAccsToken = asyncHandler(async (req, res) => {
     const decodedToken = jwt.verify(
         receivedRfrshTkn,
         process.env.REFRESH_TOKEN_SECRET
-    );    
+    );
     const user = await User.findById(decodedToken._id);
     if (!user) throw new ApiError(401, 'invald refresh token');
     if (receivedRfrshTkn !== user.refreshToken)
@@ -164,4 +164,96 @@ const refreshAccsToken = asyncHandler(async (req, res) => {
         );
 });
 
-export { registerUser, loginUser, logoutUser, refreshAccsToken };
+const changePassword = asyncHandler(async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    const user = User.findById(req.user?._id);
+    const isPswrdVld = await user.isPasswordCorrect(oldPassword);
+    if (!isPswrdVld) throw new ApiError(401, 'invalid password');
+    user.password = newPassword;
+    await save({ validateBeforeSave: false });
+    return res
+        .status(200)
+        .json(new ApiResponse(200, {}, 'password changed successfully'));
+});
+
+const getCurrentUser = asyncHandler(async (req, res) => {
+    return res
+        .status(200)
+        .json(new ApiResponse(200, req.user, 'current user fetched successfully'));
+});
+
+const updateUserDetails = asyncHandler(async (req, res) => {
+    const { fullName, email } = req.body;
+    if (!(fullName || email))
+        throw new ApiError(401, 'all fields are required');
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: { email, fullName },
+        },
+        { new: true }
+    ).select('-password');
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(200, updatedUser, 'details updated successfully')
+        );
+});
+
+const updateAvatarImg = asyncHandler(async (req, res) => {
+    const avatarLocalPath = req.file?.path;
+    if (!avatarLocalPath) throw new ApiError(401, 'file is missing');
+
+    const avatar = await uploadonCloudunary(avatarLocalPath);
+    if (!avatar.url) throw new ApiError(401, 'failed to upload file');
+
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: { avatar: avatar.url },
+        },
+        { new: true }
+    ).select('-password');
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, updatedUser, 'avatar updated successfully'));
+});
+
+const updateCoverImg = asyncHandler(async (req, res) => {
+    const coverImageLocalPath = req.file?.path;
+    if (!coverImageLocalPath) throw new ApiError(401, 'file is missing');
+
+    const coverImage = await uploadonCloudunary(coverImageLocalPath);
+    if (!coverImage.url) throw new ApiError(401, 'failed to upload file');
+
+    const updatedUser = await User.findByIdAndUpdate(
+        req.user._id,
+        {
+            $set: { coverImage: coverImage.url },
+        },
+        { new: true }
+    ).select('-password');
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                updatedUser,
+                'cover image updated successfully'
+            )
+        );
+});
+
+export {
+    registerUser,
+    loginUser,
+    logoutUser,
+    refreshAccsToken,
+    changePassword,
+    getCurrentUser,
+    updateUserDetails,
+    updateAvatarImg,
+    updateCoverImg
+};
