@@ -30,7 +30,7 @@ const userSchema = new Schema(
             required: true,
         },
         coverImage: {
-            stye: String,
+            type: String,
         },
         password: {
             type: String,

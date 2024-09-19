@@ -8,7 +8,7 @@ const registerUser = asyncHandler(async (req, res) => {
     //get user details form forntend
     const { username, fullName, password, email } = req.body;
     console.log(req.body);
-
+    console.log(req.files);
     // valid - should not be empty
     if (
         [username, fullName, email, password].some((field) => {
@@ -22,11 +22,11 @@ const registerUser = asyncHandler(async (req, res) => {
     const existedUser = await User.findOne({
         $or: [{ email }, { username }],
     });
-    if (existedUser) throw new ApiError(409, 'User already exis');
+    if (existedUser) throw new ApiError(409, 'User already exist');
 
     // check for images, check for avatar
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path;
+    const coverImageLocalPath = req.files?.coverImage?. [0]?.path;
     if (!avatarLocalPath) throw new ApiError(400, 'avatar file is reqquired!');
 
     // upload images to cloudinary
@@ -38,7 +38,7 @@ const registerUser = asyncHandler(async (req, res) => {
     const user = await User.create({
         fullName,
         email,
-        username: username.toLowercase(),
+        username: username.toLowerCase(),
         password,
         avatar: avatar.url,
         coverImage: coverImage?.url || '',
