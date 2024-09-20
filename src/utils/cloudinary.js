@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from 'cloudinary';
 import fs from 'fs';
+import { ApiError } from './apiError';
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -16,9 +17,11 @@ const uploadonCloudunary = async (localFilePath) => {
         console.log('file is uploaded successfully! path:: ', response.url);
         return response;
     } catch (error) {
+        throw new ApiError(500, 'failed to upload image');
+        // return null;
+    } finally {
         fs.unlink(localFilePath);
-        return null;
     }
 };
 
-export {uploadonCloudunary}
+export { uploadonCloudunary };
