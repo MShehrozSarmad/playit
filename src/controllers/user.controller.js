@@ -120,7 +120,7 @@ const loginUser = asyncHandler(async (req, res) => {
 const logoutUser = asyncHandler(async (req, res) => {
     User.findByIdAndUpdate(
         req.user._id,
-        { $set: { refreshToken: undefined } },
+        { $unset: { refreshToken: 1 } },
         { new: true }
     );
     const options = {
@@ -167,11 +167,11 @@ const refreshAccsToken = asyncHandler(async (req, res) => {
 
 const changePassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body;
-    const user = User.findById(req.user?._id);
+    const user = await User.findById(req.user?._id);
     const isPswrdVld = await user.isPasswordCorrect(oldPassword);
     if (!isPswrdVld) throw new ApiError(401, 'invalid password');
     user.password = newPassword;
-    await save({ validateBeforeSave: false });
+    await user.save({ validateBeforeSave: false });
     return res
         .status(200)
         .json(new ApiResponse(200, {}, 'password changed successfully'));
@@ -318,10 +318,8 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
             $match: {
-                // _id: new mongoose.Types.ObjectId(req?.user._id),
-                _id: mongoose.Types.ObjectId.createFromHexString(req?.user._id),
-                // _id: new mongoose.Types.ObjectId.createFromTime(numberInput)
-                // mongoose.Types.ObjectId.createFromBase64(stringInput)
+                _id: new mongoose.Types.ObjectId(req?.user._id),
+                // _id: mongoose.Types.ObjectId.createFromTime(req?.user._id)
             },
         },
         {
@@ -332,19 +330,21 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                 as: 'watchHistory',
                 pipeline: [
                     {
-                        $lookup: 'users',
-                        localField: 'owner',
-                        foreignField: '_id',
-                        as: 'owner',
-                        pipeline: [
-                            {
-                                $project: {
-                                    fullName: 1,
-                                    username: 1,
-                                    avatar: 1,
+                        $lookup:{
+                            from: 'users',
+                            localField: 'owner',
+                            foreignField: '_id',
+                            as: 'owner',
+                            pipeline: [
+                                {
+                                    $project: {
+                                        fullName: 1,
+                                        username: 1,
+                                        avatar: 1,
+                                    },
                                 },
-                            },
-                        ],
+                            ],
+                        }
                     },
                     {
                         $addFields: {
@@ -380,5 +380,5 @@ export {
     updateAvatarImg,
     updateCoverImg,
     getUserChannelProfile,
-    getWatchHistory
+    getWatchHistory,
 };
